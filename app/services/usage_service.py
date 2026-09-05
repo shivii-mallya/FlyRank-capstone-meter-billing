@@ -84,3 +84,54 @@ def record_usage(
     db.refresh(usage_event)
 
     return usage_event
+
+def get_usage_summary(
+    db: Session,
+    tenant_id: int
+):
+    # Find the tenant
+    tenant = (
+        db.query(Tenant)
+        .filter(Tenant.id == tenant_id)
+        .first()
+    )
+
+    if not tenant:
+        raise ValueError("Tenant not found")
+
+    # Get the start of the current month
+    now = datetime.utcnow()
+    month_start = datetime(now.year, now.month, 1)
+
+    # Get this month's usage events
+    usage_events = (
+        db.query(UsageEvent)
+        .filter(
+            UsageEvent.tenant_id == tenant_id,
+            UsageEvent.created_at >= month_start
+        )
+        .all()
+    )
+
+    # Calculate totals by usage type
+    api_calls = sum(
+        event.quantity
+        for event in usage_events
+        if event.usage_type == "api_call"
+    )
+
+    ai_tokens = sum(
+        event.quantity
+        for event in usage_events
+        if event.usage_type == "ai_tokens"
+    )
+
+    return {
+        "tenant_id": tenant.id,
+        "plan": tenant.plan.name,
+        "period": now.strftime("%Y-%m"),
+        "api_calls": api_calls,
+        "api_call_limit": tenant.plan.api_call_limit,
+        "ai_tokens": ai_tokens,
+        "ai_token_limit": tenant.plan.ai_token_limit
+    }

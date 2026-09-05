@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.databases.database import get_db
 from app.schemas.usage import UsageCreate
 from app.services.usage_service import record_usage
-
+from app.services.usage_service import record_usage, get_usage_summary
 
 router = APIRouter(
     prefix="/usage",
@@ -44,5 +44,22 @@ def record_usage_endpoint(
 
         raise HTTPException(
             status_code=400,
+            detail=str(e)
+        )
+
+@router.get("/{tenant_id}")
+def get_usage_endpoint(
+    tenant_id: int,
+    db: Session = Depends(get_db)
+):
+    try:
+        return get_usage_summary(
+            db=db,
+            tenant_id=tenant_id
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=404,
             detail=str(e)
         )
