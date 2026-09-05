@@ -35,8 +35,14 @@ def record_usage_endpoint(
             "created_at": usage_event.created_at
         }
 
-    except Exception as e:
+    except ValueError as e:
+        if "quota exceeded" in str(e):
+            raise HTTPException(
+                status_code=429,
+                detail=str(e)
+            )
+
         raise HTTPException(
-            status_code=500,
+            status_code=400,
             detail=str(e)
         )
