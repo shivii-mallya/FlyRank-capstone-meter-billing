@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from app.databases.database import Base, engine
 from app.databases import models
 from app.routers.tenant_router import router as tenant_router
+from app.routers.usage_router import router as usage_router
 
 # Create all database tables
 Base.metadata.create_all(bind=engine)
@@ -15,6 +16,7 @@ app = FastAPI(
 )
 
 app.include_router(tenant_router)
+app.include_router(usage_router)
 
 @app.get("/")
 def root():
