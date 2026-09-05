@@ -1,5 +1,13 @@
 from fastapi import FastAPI
 
+from app.databases.database import Base, engine
+from app.databases import models
+
+
+# Create all database tables
+Base.metadata.create_all(bind=engine)
+
+
 app = FastAPI(
     title="Usage Metering & Billing Engine",
     description="A backend service for tracking SaaS usage, enforcing quotas, and calculating billing costs.",
