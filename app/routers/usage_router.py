@@ -19,21 +19,29 @@ def record_usage_endpoint(
 ):
     try:
         usage_event = record_usage(
-            db=db,
-            tenant_id=usage_data.tenant_id,
-            usage_type=usage_data.usage_type,
-            quantity=usage_data.quantity,
-            idempotency_key=usage_data.idempotency_key
-        )
+        db=db,
+        tenant_id=usage_data.tenant_id,
+        usage_type=usage_data.usage_type,
+        quantity=usage_data.quantity,
+        idempotency_key=usage_data.idempotency_key,
+        input_tokens=usage_data.input_tokens,
+        cached_input_tokens=usage_data.cached_input_tokens,
+        output_tokens=usage_data.output_tokens,
+        reasoning_tokens=usage_data.reasoning_tokens
+    )
 
         return {
-            "id": usage_event.id,
-            "tenant_id": usage_event.tenant_id,
-            "usage_type": usage_event.usage_type,
-            "quantity": usage_event.quantity,
-            "idempotency_key": usage_event.idempotency_key,
-            "created_at": usage_event.created_at
-        }
+    "id": usage_event.id,
+    "tenant_id": usage_event.tenant_id,
+    "usage_type": usage_event.usage_type,
+    "quantity": usage_event.quantity,
+    "idempotency_key": usage_event.idempotency_key,
+    "input_tokens": usage_event.input_tokens,
+    "cached_input_tokens": usage_event.cached_input_tokens,
+    "output_tokens": usage_event.output_tokens,
+    "reasoning_tokens": usage_event.reasoning_tokens,
+    "created_at": usage_event.created_at
+    }
 
     except ValueError as e:
         if "quota exceeded" in str(e):
