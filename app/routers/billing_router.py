@@ -1,17 +1,23 @@
-from fastapi import APIRouter, HTTPException
-
-from app.services.billing_service import create_pro_subscription
-
-router = APIRouter(prefix="/billing", tags=["Billing"])
-from fastapi import Request, Header
+from fastapi import APIRouter, HTTPException, Request, Header, Depends
 from sqlalchemy.orm import Session
 
 from app.databases.database import get_db
-from app.services.billing_service import(process_webhook,  create_pro_subscription)
-from fastapi import APIRouter, HTTPException, Request, Header, Depends
+from app.services.billing_service import (
+    create_pro_subscription,
+    process_webhook
+)
+from app.dependencies.auth import verify_tenant_key
+
+router = APIRouter(
+    prefix="/billing",
+    tags=["Billing"]
+)
 
 @router.post("/checkout")
-def create_checkout(tenant_id: int):
+def create_checkout(
+    tenant_id: int,
+    tenant = Depends(verify_tenant_key)
+):
     try:
         subscription = create_pro_subscription(tenant_id)
 

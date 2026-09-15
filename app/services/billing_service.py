@@ -3,7 +3,6 @@ from app.services.payment_service import get_razorpay_client
 import hmac
 import hashlib
 from app.config import RAZORPAY_WEBHOOK_SECRET
-from app.databases.models import ProcessedWebhookEvent, Tenant
 from app.databases.models import (
     ProcessedWebhookEvent,
     Tenant,
