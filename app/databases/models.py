@@ -42,7 +42,7 @@ class Tenant(Base):
 
     name = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
-
+    api_key = Column(String, unique=True, nullable=False)
     plan_id = Column(
         Integer,
         ForeignKey("plans.id"),
