@@ -1,15 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Header 
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
+
 from app.databases.models import Tenant
 from app.databases.database import get_db
 from app.schemas.usage import UsageCreate
-from app.services.usage_service import record_usage
 from app.services.usage_service import record_usage, get_usage_summary
+from app.services.background_service import process_usage_background
+
 
 router = APIRouter(
     prefix="/usage",
     tags=["Usage"]
 )
+
 
 def verify_tenant_key(
     tenant_id: int,
@@ -36,9 +39,11 @@ def verify_tenant_key(
 
     return tenant
 
+
 @router.post("/")
 def record_usage_endpoint(
     usage_data: UsageCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     x_tenant_key: str = Header(...)
 ):
@@ -62,29 +67,38 @@ def record_usage_endpoint(
 
     try:
         usage_event = record_usage(
-        db=db,
-        tenant_id=usage_data.tenant_id,
-        usage_type=usage_data.usage_type,
-        quantity=usage_data.quantity,
-        idempotency_key=usage_data.idempotency_key,
-        input_tokens=usage_data.input_tokens,
-        cached_input_tokens=usage_data.cached_input_tokens,
-        output_tokens=usage_data.output_tokens,
-        reasoning_tokens=usage_data.reasoning_tokens
-    )
+            db=db,
+            tenant_id=usage_data.tenant_id,
+            usage_type=usage_data.usage_type,
+            quantity=usage_data.quantity,
+            idempotency_key=usage_data.idempotency_key,
+            input_tokens=usage_data.input_tokens,
+            cached_input_tokens=usage_data.cached_input_tokens,
+            output_tokens=usage_data.output_tokens,
+            reasoning_tokens=usage_data.reasoning_tokens
+        )
+
+        # Run non-critical post-processing outside the main request logic.
+        background_tasks.add_task(
+            process_usage_background,
+            usage_event.id,
+            usage_event.tenant_id,
+            usage_event.usage_type,
+            usage_event.quantity
+        )
 
         return {
-    "id": usage_event.id,
-    "tenant_id": usage_event.tenant_id,
-    "usage_type": usage_event.usage_type,
-    "quantity": usage_event.quantity,
-    "idempotency_key": usage_event.idempotency_key,
-    "input_tokens": usage_event.input_tokens,
-    "cached_input_tokens": usage_event.cached_input_tokens,
-    "output_tokens": usage_event.output_tokens,
-    "reasoning_tokens": usage_event.reasoning_tokens,
-    "created_at": usage_event.created_at
-    }
+            "id": usage_event.id,
+            "tenant_id": usage_event.tenant_id,
+            "usage_type": usage_event.usage_type,
+            "quantity": usage_event.quantity,
+            "idempotency_key": usage_event.idempotency_key,
+            "input_tokens": usage_event.input_tokens,
+            "cached_input_tokens": usage_event.cached_input_tokens,
+            "output_tokens": usage_event.output_tokens,
+            "reasoning_tokens": usage_event.reasoning_tokens,
+            "created_at": usage_event.created_at
+        }
 
     except ValueError as e:
         if "quota exceeded" in str(e):
@@ -97,6 +111,7 @@ def record_usage_endpoint(
             status_code=400,
             detail=str(e)
         )
+
 
 @router.get("/{tenant_id}")
 def get_usage_endpoint(
